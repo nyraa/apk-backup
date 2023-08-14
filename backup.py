@@ -6,7 +6,11 @@ import re
 # execute adb command and return stdout
 def run_adb_command(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output, _ = process.communicate()
+    output, error = process.communicate()
+    
+    if process.returncode != 0:
+        raise Exception(f"{output.decode().strip()}")
+    
     return output.decode().strip().replace('\r', '')
 
 # get device serials from "adb devices"
