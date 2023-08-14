@@ -29,6 +29,17 @@ def get_installed_packages(device_serial):
     return package_names
 
 
+# get packages version
+def get_installed_packages_version(device_serial):
+    adb_command = """dumpsys package | awk '/^Packages\:/,/^$/ { if ($0 ~ /^[ ]*Package \[.*\] (.*)/) { i = index($0, ""["") + 1; pkg = substr($0, i, index($0, ""]"") - i); printf ""%s\t"", pkg; } else if($0 ~ /^[ ]*versionName=(.*)/) { print }}'"""
+    if device_serial:
+        command = f'adb -s {device_serial} shell "{adb_command}"'
+    else:
+        command = f'adb shell "{adb_command}"'
+    output = run_adb_command(command)
+    packages_info = {pkg: re.search(r'versionName=([^\s]+)', ver).group(1) for pkg, ver in [line.split('\t') for line in output.split('\n') if line]}
+    return packages_info
+
 # get package version name
 def get_package_version(package_name, device_serial):
     if device_serial:
@@ -52,17 +63,17 @@ def get_package_paths(package_name, device_serial):
     return package_paths
 
 # backup package to local
-def backup_apk(package_name, output_dir, device_serial):
-    version = get_package_version(package_name, device_serial)
-    print(package_name, version)
+def backup_apk(package_name, output_dir, version, device_serial):
+    # version = get_package_version(package_name, device_serial)
+
     package_dir = os.path.join(output_dir, f'{package_name}_{version}')
-    if os.path.exists(package_dir):
-        print('skip')
-        return
-    package_paths = get_package_paths(package_name, device_serial)
     os.makedirs(package_dir, exist_ok=True)
+
+    package_paths = get_package_paths(package_name, device_serial)
+
     for package_path in package_paths:
         output_file = os.path.join(package_dir, '.')
+
         if device_serial:
             command = f'adb -s {device_serial} pull {package_path} {output_file}'
         else:
@@ -87,9 +98,18 @@ def main():
         print(device_serials)
         return
 
+    versions_info = get_installed_packages_version(device_serial)
+
+    # packages is subset of versions_info
     packages = get_installed_packages(device_serial)
+
     for package_name in packages:
-        backup_apk(package_name, output_dir, device_serial)
+        version = versions_info[package_name]
+        package_dir = os.path.join(output_dir, f'{package_name}_{version}')
+        if os.path.exists(package_dir):
+            continue
+        print(package_name, version)
+        backup_apk(package_name, output_dir, version, device_serial)
 
 if __name__ == '__main__':
     main()
