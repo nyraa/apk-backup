@@ -92,6 +92,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='APK Backup Tool')
     parser.add_argument('-s', '--serial', help='device serial number')
+    parser.add_argument('-d', '--dry-run', action='store_true', help='dry run')
     args = parser.parse_args()
 
     device_serial = args.serial if args.serial else ''
@@ -113,6 +114,8 @@ def main():
         if os.path.exists(package_dir):
             continue
         print(package_name, version)
+        if args.dry_run:
+            continue
         backup_apk(package_name, output_dir, version, device_serial)
 
 if __name__ == '__main__':
