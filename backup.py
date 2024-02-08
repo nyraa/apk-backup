@@ -90,6 +90,12 @@ def main():
     output_dir = './apk_backups'
     os.makedirs(output_dir, exist_ok=True)
 
+    existed_list = []
+    try:
+        existed_list = open(os.path.join(output_dir, 'existed_list.txt'), 'r').read().split('\n')
+    except:
+        pass
+
     parser = argparse.ArgumentParser(description='APK Backup Tool')
     parser.add_argument('-s', '--serial', help='device serial number')
     parser.add_argument('-d', '--dry-run', action='store_true', help='dry run')
@@ -110,8 +116,9 @@ def main():
 
     for package_name in packages:
         version = versions_info[package_name]
-        package_dir = os.path.join(output_dir, f'{package_name}_{version}')
-        if os.path.exists(package_dir):
+        package_identifier = f'{package_name}_{version}'
+        package_dir = os.path.join(output_dir, package_identifier)
+        if package_identifier in existed_list or os.path.exists(package_dir):
             continue
         print(package_name, version)
         if args.dry_run:
